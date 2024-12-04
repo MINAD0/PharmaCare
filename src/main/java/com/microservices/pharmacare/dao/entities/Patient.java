@@ -15,6 +15,7 @@ public class Patient {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @Column(nullable = false, unique = true)
     private String codePatient;
 
@@ -22,10 +23,16 @@ public class Patient {
     private String nom;
 
     @Column(nullable = false)
-    private String tel;
+    private String prenom;
 
     @Column(nullable = false)
+    private String tel;
+
+    @Column(nullable = true)
     private String motDePasse;
+
+    @Column(nullable = false)
+    private String cin;
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL)
     private List<Ordonnance> ordonnances;
