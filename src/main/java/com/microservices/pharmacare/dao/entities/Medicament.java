@@ -31,4 +31,8 @@ public class Medicament {
 
     @OneToMany(mappedBy = "médicament", cascade = CascadeType.ALL)
     private List<Rappel> rappels;
+
+    @ManyToOne
+    @JoinColumn(name = "patient_id", nullable = false)
+    private Patient patient;
 }

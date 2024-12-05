@@ -36,4 +36,8 @@ public class Patient {
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL)
     private List<Ordonnance> ordonnances;
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL)
+    private List<Medicament> medicaments;
+
 }
