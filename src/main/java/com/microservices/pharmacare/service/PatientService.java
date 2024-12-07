@@ -7,30 +7,39 @@ import com.microservices.pharmacare.dao.entities.Patient;
 import com.microservices.pharmacare.dao.repository.MedicamentRepository;
 import com.microservices.pharmacare.dao.repository.OrdonnanceRepository;
 import com.microservices.pharmacare.dao.repository.PatientRepository;
+import com.microservices.pharmacare.dto.OrdonnanceDTO;
 import com.microservices.pharmacare.dto.PatientCreateDto;
+import com.microservices.pharmacare.dto.PatientDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PatientService {
 
-    // Injection des repositories
     private final PatientRepository patientRepository;
     private final OrdonnanceRepository ordonnanceRepository;
     private final MedicamentRepository medicamentRepository;
+    private final PharmacienService pharmacienService;
 
     @Autowired
-    public PatientService(PatientRepository patientRepository, OrdonnanceRepository ordonnanceRepository, MedicamentRepository medicamentRepository) {
+    public PatientService(PatientRepository patientRepository, OrdonnanceRepository ordonnanceRepository, MedicamentRepository medicamentRepository, PharmacienService pharmacienService) {
         this.patientRepository = patientRepository;
         this.ordonnanceRepository = ordonnanceRepository;
         this.medicamentRepository = medicamentRepository;
+        this.pharmacienService = pharmacienService;
     }
 
     // Obtenir toutes les ordonnances d'un patient par son ID
     public List<Ordonnance> getAllOrdonnancesByPatientId(Long patientId) {
-        return ordonnanceRepository.findByPatientId(patientId);
+        List<Ordonnance> ordonnances = ordonnanceRepository.findByPatientId(patientId);
+        if (ordonnances.isEmpty()) {
+            throw new IllegalArgumentException("No ordonnance found for this patient");
+        }
+        return ordonnances;
     }
 
     // Obtenir les détails d'un patient par son ID
@@ -46,7 +55,6 @@ public class PatientService {
             existingPatient.setPrenom(patientUpdateDto.getPrenom());
             existingPatient.setTel(patientUpdateDto.getTel());
             existingPatient.setCin(patientUpdateDto.getCin());
-            existingPatient.setCodePatient(patientUpdateDto.getCodePatient());
             return patientRepository.save(existingPatient);
         }
         return null;
@@ -54,16 +62,45 @@ public class PatientService {
 
     // Supprimer un patient
     public void deletePatient(Long patientId) {
-        patientRepository.deleteById(patientId);
+        if (patientRepository.existsById(patientId)){
+            patientRepository.deleteById(patientId);
+        }else{
+            throw new IllegalArgumentException("Patient not found");
+        }
     }
 
-    public Patient getPatientByCode(String codePatient) {
-        return patientRepository.findByCodePatient(codePatient).orElse(null);
+    public PatientDTO getPatientByCode(String codePatient) {
+        Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
+        return patient.map(this::mapToDto).orElse(null);
     }
+
+    private PatientDTO mapToDto(Patient patient) {
+        List<OrdonnanceDTO> ordonnances = patient.getOrdonnances().stream()
+                .map(ordonnance -> new OrdonnanceDTO(ordonnance.getId(), ordonnance.getDescription(), ordonnance.getDate()))
+                .collect(Collectors.toList());
+        return new PatientDTO(
+                patient.getCodePatient(),
+                patient.getNom(),
+                patient.getPrenom(),
+                patient.getTel(),
+                patient.getCin(),
+                ordonnances
+        );
+    }
+
 
 
     // Obtenir l'historique des médicaments consommés par un patient
     public List<Medicament> getHistoriqueMédicamentsByPatientId(Long patientId) {
-        return medicamentRepository.findByPatientId(patientId);
+        List<Medicament> medicaments = medicamentRepository.findByPatientId(patientId);
+        if (medicaments.isEmpty()) {
+            throw new IllegalArgumentException("No medicament found for this patient");
+        }
+        return medicaments;
     }
+
+    public boolean verifyPatientCode(String codePatient) {
+        return patientRepository.existsByCodePatient(codePatient);
+    }
+
 }

@@ -20,6 +20,9 @@ public class Ordonnance {
     @Column(nullable = false)
     private LocalDate date;
 
+    @Column(nullable = false)
+    private String description;
+
     @ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
