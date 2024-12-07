@@ -1,5 +1,6 @@
 package com.microservices.pharmacare.controller;
 
+<<<<<<< HEAD
 import com.microservices.pharmacare.dao.entities.Patient;
 import com.microservices.pharmacare.dao.repository.PatientRepository;
 import com.microservices.pharmacare.dto.AuthRequest;
@@ -8,6 +9,11 @@ import com.microservices.pharmacare.service.PatientService;
 import com.microservices.pharmacare.service.PharmacienService;
 import com.microservices.pharmacare.util.JwtUtil;
 import org.springframework.http.HttpStatus;
+=======
+import com.microservices.pharmacare.dto.AuthRequest;
+import com.microservices.pharmacare.dto.AuthResponse;
+import com.microservices.pharmacare.util.JwtUtil;
+>>>>>>> origin/mehdi
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,6 +28,7 @@ import java.util.Optional;
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
+<<<<<<< HEAD
     private final PharmacienService pharmacienService;
     private final PatientService patientService;
     private final PatientRepository patientRepository;
@@ -35,6 +42,13 @@ public class AuthController {
         this.patientService = patientService;
         this.patientRepository = patientRepository;
         this.passwordEncoder = passwordEncoder;
+=======
+
+
+    public AuthController(AuthenticationManager authenticationManager, JwtUtil jwtUtil) {
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
+>>>>>>> origin/mehdi
     }
 
     @PostMapping("/login")
@@ -52,6 +66,7 @@ public class AuthController {
         String token = jwtUtil.generateToken(authentication.getName(), role);
         return ResponseEntity.ok(new AuthResponse(token));
     }
+<<<<<<< HEAD
 
     @GetMapping("/verify-code/{codePatient}")
     public ResponseEntity<String> verifyCode(@PathVariable("codePatient") String codePatient) {
@@ -76,4 +91,6 @@ public class AuthController {
         return false; // Patient code not found
     }
 
+=======
+>>>>>>> origin/mehdi
 }
