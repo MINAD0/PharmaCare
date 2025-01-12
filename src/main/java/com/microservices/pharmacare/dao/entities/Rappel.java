@@ -3,6 +3,7 @@ package com.microservices.pharmacare.dao.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
@@ -15,12 +16,19 @@ public class Rappel {
     private Long id;
 
     @Column(nullable = false)
-    private LocalTime heure;
+    private String titre;
 
     @Column(nullable = false)
-    private String message;
+    private String description;
+
+    @Column(nullable = false)
+    private LocalDateTime dateHeure;
 
     @ManyToOne
-    @JoinColumn(name = "médicament_id", nullable = false)
-    private Medicament médicament;
+    @JoinColumn(name = "medicament_id", nullable = false)
+    private Medicament medicament;
+
+    @ManyToOne
+    @JoinColumn(name = "patient_id", nullable = false)
+    private Patient patient;
 }

@@ -13,5 +13,6 @@ public class PatientDTO {
     private String prenom;
     private String tel;
     private String cin;
+    private String profilePictureUrl;
     private List<OrdonnanceDTO> ordonnances;
 }

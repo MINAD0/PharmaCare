@@ -17,10 +17,9 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/pharmacien")
+@CrossOrigin("*")
 public class PharmacienController {
-
     private final PharmacienService pharmacienService;
-
 
     public PharmacienController(PharmacienService pharmacienService) {
         this.pharmacienService = pharmacienService;

@@ -7,6 +7,5 @@ import java.util.List;
 
 public interface MedicamentRepository extends JpaRepository<Medicament, Long> {
     Medicament findByNom(String nom);
-    // Méthode pour obtenir tous les médicaments d'un patient par son ID
     List<Medicament> findByPatientId(Long patientId);
 }

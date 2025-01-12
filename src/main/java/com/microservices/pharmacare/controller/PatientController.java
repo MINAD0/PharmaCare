@@ -12,16 +12,19 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/patients")
+//@CrossOrigin("*")
 public class PatientController {
 
     private final PatientService patientService;
 
-    // Constructeur avec injection du service
     public PatientController(PatientService patientService) {
         this.patientService = patientService;
     }
 
-    // Méthode pour récupérer un patient par son code unique
+    @GetMapping
+    public ResponseEntity<?> getAllPatients() {
+        return ResponseEntity.ok(patientService.getAllPatients());
+    }
 
     @GetMapping("/{codePatient}")
     public ResponseEntity<PatientDTO> getPatientByCode(@PathVariable String codePatient) {
@@ -33,38 +36,42 @@ public class PatientController {
         }
     }
 
-    // Méthode pour mettre à jour un patient
 
-    @PutMapping("/{patientId}")
-    public ResponseEntity<Patient> updatePatient(@PathVariable Long patientId,
-                                                 @RequestBody PatientCreateDto patientCreateDto) {
-        Patient updatedPatient = patientService.updatePatient(patientId, patientCreateDto);
+    @PutMapping("/{codePatient}")
+    public ResponseEntity<PatientDTO> updatePatientByCode(@PathVariable String codePatient,
+                                                       @RequestBody PatientCreateDto patientCreateDto) {
+        PatientDTO updatedPatient = patientService.updatePatient(codePatient, patientCreateDto);
         if (updatedPatient != null) {
             return ResponseEntity.ok(updatedPatient);
         } else {
-            return ResponseEntity.notFound().build();  // Si le patient n'est pas trouvé
+            return ResponseEntity.notFound().build();  // Return 404 if the patient is not found
         }
     }
 
-    // Méthode pour supprimer un patient
-
-    @DeleteMapping("/{patientId}")
-    public ResponseEntity<Void> deletePatient(@PathVariable Long patientId) {
-        patientService.deletePatient(patientId);
-        return ResponseEntity.noContent().build();  // Retourne une réponse vide après suppression
+    @DeleteMapping("/{codePatient}")
+    public ResponseEntity<Void> deletePatientByCode(@PathVariable String codePatient) {
+        try {
+            patientService.deletePatientByCode(codePatient);
+            return ResponseEntity.noContent().build();  // Return empty response after deletion
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();  // Return 404 if the patient is not found
+        }
     }
 
-    // Méthode pour récupérer les ordonnances d'un patient
 
-    @GetMapping("/{patientId}/ordonnances")
-    public ResponseEntity<?> getAllOrdonnancesByPatientId(@PathVariable Long patientId) {
-        return ResponseEntity.ok(patientService.getAllOrdonnancesByPatientId(patientId));
+    @GetMapping("/{codePatient}/ordonnances")
+    public ResponseEntity<?> getOrdonnancesByCodePatient(@PathVariable String codePatient) {
+        return ResponseEntity.ok(patientService.getOrdonnancesByCodePatient(codePatient));
     }
 
-    // Méthode pour obtenir l'historique des médicaments d'un patient
 
-    @GetMapping("/{patientId}/historique-medicaments")
-    public ResponseEntity<?> getHistoriqueMedicamentsByPatientId(@PathVariable Long patientId) {
-        return ResponseEntity.ok(patientService.getHistoriqueMédicamentsByPatientId(patientId));
+    @GetMapping("/{codePatient}/historique-medicaments")
+    public ResponseEntity<?> getHistoriqueMedicamentsByCodePatient(@PathVariable String codePatient) {
+        try {
+            return ResponseEntity.ok(patientService.getHistoriqueMedicamentsByCodePatient(codePatient));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();  // Return 404 if no patient or medications are found
+        }
     }
+
 }

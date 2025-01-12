@@ -29,7 +29,7 @@ public class Medicament {
     @JoinColumn(name = "ordonnance_id", nullable = false)
     private Ordonnance ordonnance;
 
-    @OneToMany(mappedBy = "médicament", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "medicament", cascade = CascadeType.ALL)
     private List<Rappel> rappels;
 
     @ManyToOne

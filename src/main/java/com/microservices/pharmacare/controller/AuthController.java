@@ -18,10 +18,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
+@CrossOrigin("*")
 public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
@@ -58,17 +61,37 @@ public class AuthController {
     }
 
     @GetMapping("/verify-code/{codePatient}")
-    public ResponseEntity<String> verifyCode(@PathVariable("codePatient") String codePatient) {
+    public ResponseEntity<Map<String, String>> verifyCode(@PathVariable("codePatient") String codePatient) {
         boolean exists = patientService.verifyPatientCode(codePatient);
+        Map<String, String> response = new HashMap<>();
+
         if (exists) {
-            return ResponseEntity.ok("Code exists. Proceed to set the password.");
+            boolean isPasswordSet = patientService.isPasswordSet(codePatient);
+            response.put("status", "success");
+
+            if (isPasswordSet) {
+                response.put("message", "Account already registered");
+            } else {
+                response.put("message", "Account exists but not yet registered");
+            }
+
+            response.put("passwordSet", isPasswordSet ? "true" : "false");
+            return ResponseEntity.ok(response);
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Invalid code.");
+            response.put("status", "error");
+            response.put("message", "Code does not exist");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
     }
 
+
+
     // Method to set the password
-    public boolean setPassword(String codePatient, String newPassword) {
+    @PostMapping("/set-password")
+    public boolean setPassword(@RequestBody Map<String, String> payload) {
+        String codePatient = payload.get("codePatient");
+        String newPassword = payload.get("newPassword");
+
         Optional<Patient> optionalPatient = patientRepository.findByCodePatient(codePatient);
         if (optionalPatient.isPresent()) {
             Patient patient = optionalPatient.get();
@@ -78,6 +101,41 @@ public class AuthController {
             return true; // Password update successful
         }
         return false; // Patient code not found
+    }
+
+
+    @PostMapping("/patient-login")
+    public ResponseEntity<Map<String, String>> patientLogin(@RequestBody AuthRequest authRequest) {
+        Map<String, String> response = new HashMap<>();
+        try {
+            Optional<Patient> optionalPatient = patientRepository.findByCodePatient(authRequest.getEmailOrCode());
+
+            if (optionalPatient.isPresent()) {
+                Patient patient = optionalPatient.get();
+
+                // Check if the password matches
+                if (passwordEncoder.matches(authRequest.getPassword(), patient.getMotDePasse())) {
+                    // Generate a token
+                    String token = jwtUtil.generateToken(patient.getCodePatient(), "PATIENT");
+                    response.put("status", "success");
+                    response.put("token", token);
+                    response.put("message", "Login successful");
+                    return ResponseEntity.ok(response);
+                } else {
+                    response.put("status", "error");
+                    response.put("message", "Invalid password");
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+                }
+            } else {
+                response.put("status", "error");
+                response.put("message", "Patient not found with provided code");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", "An error occurred during login: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
 }

@@ -104,6 +104,7 @@ public class PharmacienService {
                 patient.getPrenom(),
                 patient.getTel(),
                 patient.getCin(),
+                patient.getProfilePictureUrl(),
                 ordonnances
         );
     }
@@ -131,6 +132,7 @@ public class PharmacienService {
                                 patient.get().getPrenom(),
                                 patient.get().getTel(),
                                 patient.get().getCin(),
+                                patient.get().getProfilePictureUrl(),
                                 List.of(ordonnanceDTO)
                         ))
                         .collect(Collectors.toList());

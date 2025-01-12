@@ -13,6 +13,7 @@ import com.microservices.pharmacare.dto.PatientDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,41 +34,52 @@ public class PatientService {
         this.pharmacienService = pharmacienService;
     }
 
-    // Obtenir toutes les ordonnances d'un patient par son ID
-    public List<Ordonnance> getAllOrdonnancesByPatientId(Long patientId) {
-        List<Ordonnance> ordonnances = ordonnanceRepository.findByPatientId(patientId);
-        if (ordonnances.isEmpty()) {
-            throw new IllegalArgumentException("No ordonnance found for this patient");
-        }
-        return ordonnances;
+    public List<PatientDTO> getAllPatients() {
+        return patientRepository.findAll().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
-    // Obtenir les détails d'un patient par son ID
-    public Patient getPatientById(Long patientId) {
-        return patientRepository.findById(patientId).orElse(null);
-    }
-
-    // Mettre à jour les informations d'un patient
-    public Patient updatePatient(Long patientId, PatientCreateDto patientUpdateDto) {
-        Patient existingPatient = patientRepository.findById(patientId).orElse(null);
-        if (existingPatient != null) {
-            existingPatient.setNom(patientUpdateDto.getNom());
-            existingPatient.setPrenom(patientUpdateDto.getPrenom());
-            existingPatient.setTel(patientUpdateDto.getTel());
-            existingPatient.setCin(patientUpdateDto.getCin());
-            return patientRepository.save(existingPatient);
-        }
-        return null;
-    }
-
-    // Supprimer un patient
-    public void deletePatient(Long patientId) {
-        if (patientRepository.existsById(patientId)){
-            patientRepository.deleteById(patientId);
-        }else{
-            throw new IllegalArgumentException("Patient not found");
+    public List<Ordonnance> getOrdonnancesByCodePatient(String codePatient) {
+        Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
+        if (patient.isPresent()) {
+            return patient.get().getOrdonnances(); // Assuming `ordonnances` is a field in `Patient`
+        } else {
+            return Collections.emptyList(); // Return empty list if no patient is found
         }
     }
+
+
+    public PatientDTO updatePatient(String codePatient, PatientCreateDto patientUpdateDto) {
+        Optional<Patient> existingPatient = patientRepository.findByCodePatient(codePatient);
+        if (existingPatient.isPresent()) {
+            Patient patient = existingPatient.get();
+            patient.setNom(patientUpdateDto.getNom());
+            patient.setPrenom(patientUpdateDto.getPrenom());
+            patient.setTel(patientUpdateDto.getTel());
+            patient.setCin(patientUpdateDto.getCin());
+            patient.setProfilePictureUrl(patientUpdateDto.getProfilePictureUrl()); // Add this line
+
+//            System.out.println("Received profilePicture: " + patientUpdateDto.getProfilePictureUrl()); // Log profile picture
+
+            Patient updatedPatient = patientRepository.save(patient);
+            return mapToDto(updatedPatient);
+        }
+        throw new IllegalArgumentException("Patient with code " + codePatient + " not found.");
+    }
+
+
+
+
+    public void deletePatientByCode(String codePatient) {
+        Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
+        if (patient.isPresent()) {
+            patientRepository.delete(patient.get());
+        } else {
+            throw new IllegalArgumentException("Patient not found with code: " + codePatient);
+        }
+    }
+
 
     public PatientDTO getPatientByCode(String codePatient) {
         Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
@@ -84,23 +96,30 @@ public class PatientService {
                 patient.getPrenom(),
                 patient.getTel(),
                 patient.getCin(),
+                patient.getProfilePictureUrl(),
                 ordonnances
         );
     }
 
 
-
-    // Obtenir l'historique des médicaments consommés par un patient
-    public List<Medicament> getHistoriqueMédicamentsByPatientId(Long patientId) {
-        List<Medicament> medicaments = medicamentRepository.findByPatientId(patientId);
-        if (medicaments.isEmpty()) {
-            throw new IllegalArgumentException("No medicament found for this patient");
+    public List<Medicament> getHistoriqueMedicamentsByCodePatient(String codePatient) {
+        Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
+        if (patient.isPresent()) {
+            return medicamentRepository.findByPatientId(patient.get().getId());
+        } else {
+            throw new IllegalArgumentException("No patient found with code: " + codePatient);
         }
-        return medicaments;
     }
+
 
     public boolean verifyPatientCode(String codePatient) {
         return patientRepository.existsByCodePatient(codePatient);
     }
+
+    public boolean isPasswordSet(String codePatient) {
+        Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
+        return patient.isPresent() && patient.get().getMotDePasse() != null && !patient.get().getMotDePasse().isEmpty();
+    }
+
 
 }

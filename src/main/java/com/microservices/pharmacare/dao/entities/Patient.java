@@ -34,6 +34,9 @@ public class Patient {
     @Column(nullable = false)
     private String cin;
 
+    @Column(nullable = true, columnDefinition = "TEXT")
+    private String profilePictureUrl; // Add profile picture field
+
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL)
     private List<Ordonnance> ordonnances;
 
