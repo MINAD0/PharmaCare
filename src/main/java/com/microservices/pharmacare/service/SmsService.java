@@ -26,11 +26,17 @@ public class SmsService {
     }
 
     public void sendSms(String toPhoneNumber, String messageBody) {
-        initializeTwilio(); // Ensure Twilio is initialized before sending SMS
-        Message.creator(
-                new com.twilio.type.PhoneNumber(toPhoneNumber), // To number
-                new com.twilio.type.PhoneNumber(twilioPhoneNumber), // From Twilio number
-                messageBody // SMS Body
-        ).create();
+        try {
+            initializeTwilio(); // Ensure Twilio is initialized before sending SMS
+            Message.creator(
+                    new com.twilio.type.PhoneNumber(toPhoneNumber), // To number
+                    new com.twilio.type.PhoneNumber(twilioPhoneNumber), // From Twilio number
+                    messageBody // SMS Body
+            ).create();
+        } catch (Exception e) {
+            // Log more detailed error for debugging purposes
+            System.err.println("Twilio SMS Error: " + e.getMessage());
+            e.printStackTrace(); // To see the full exception stack trace
+        }
     }
 }

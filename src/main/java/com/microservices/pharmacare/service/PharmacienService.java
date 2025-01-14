@@ -64,14 +64,15 @@ public class PharmacienService {
         }
     }
 
-    public List<Patient> ListPatients() {
+    public List<PatientDTO> ListPatients() {
         try{
-            return patientRepository.findAll();
+            return patientRepository.findAll().stream().map(this::mapToDto).collect(Collectors.toList());
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
+
 
     private String generatePatientCode(String nom, String prenom) {
         String codePatient;
@@ -145,4 +146,12 @@ public class PharmacienService {
         }
     }
 
+    public void deletePatientByCode(String codePatient) {
+        Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
+        if (patient.isPresent()) {
+            patientRepository.delete(patient.get());
+        } else {
+            throw new IllegalArgumentException("Patient not found with code: " + codePatient);
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.microservices.pharmacare.dao.repository;
 
 import com.microservices.pharmacare.dao.entities.Patient;
+import com.microservices.pharmacare.dto.PatientDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

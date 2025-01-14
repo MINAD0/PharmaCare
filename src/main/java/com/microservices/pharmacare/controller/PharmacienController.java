@@ -34,8 +34,8 @@ public class PharmacienController {
 
 
     @GetMapping("/patients")
-    public ResponseEntity<List<Patient>> getPatients() {
-        List<Patient> patients = pharmacienService.ListPatients();
+    public ResponseEntity<List<PatientDTO>> getPatients() {
+        List<PatientDTO> patients = pharmacienService.ListPatients();
         return ResponseEntity.ok(patients);
     }
 
@@ -67,6 +67,16 @@ public class PharmacienController {
             return ResponseEntity.ok(patient);
         }else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+    }
+
+    @DeleteMapping("/{codePatient}")
+    public ResponseEntity<Void> deletePatientByCode(@PathVariable("codePatient") String codePatient){
+        try {
+            pharmacienService.deletePatientByCode(codePatient);
+            return ResponseEntity.noContent().build();  // Return empty response after deletion
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();  // Return 404 if the patient is not found
         }
     }
 

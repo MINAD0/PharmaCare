@@ -35,8 +35,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable CORS
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/pharmacien/**").hasAuthority("PHARMACIEN")
-                        .requestMatchers("/api/patients/**").hasAuthority("PATIENT")
+                        .requestMatchers("/api/pharmacien/**").hasAuthority("PHARMACIEN")
+                        .requestMatchers("/api/patients/**").hasAnyAuthority("PATIENT", "PHARMACIEN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
