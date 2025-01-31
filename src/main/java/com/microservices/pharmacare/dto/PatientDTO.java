@@ -3,6 +3,7 @@ package com.microservices.pharmacare.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -15,4 +16,9 @@ public class PatientDTO {
     private String cin;
     private String profilePictureUrl;
     private List<OrdonnanceDTO> ordonnances;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    // Add status field
+    private int status;
 }

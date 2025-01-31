@@ -4,6 +4,7 @@ import com.microservices.pharmacare.dao.entities.Patient;
 import com.microservices.pharmacare.dao.repository.OrdonnanceRepository;
 import com.microservices.pharmacare.dao.repository.PatientRepository;
 import com.microservices.pharmacare.dao.repository.PharmacienRepository;
+import com.microservices.pharmacare.dto.MedicamentDTO;
 import com.microservices.pharmacare.dto.OrdonnanceDTO;
 import com.microservices.pharmacare.dto.PatientCreateDto;
 import com.microservices.pharmacare.dto.PatientDTO;
@@ -66,13 +67,12 @@ public class PharmacienService {
 
     public List<PatientDTO> ListPatients() {
         try{
-            return patientRepository.findAll().stream().map(this::mapToDto).collect(Collectors.toList());
+            return patientRepository.findAllByOrderByCreatedAtDesc().stream().map(this::mapToDto).collect(Collectors.toList());
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
-
 
     private String generatePatientCode(String nom, String prenom) {
         String codePatient;
@@ -94,11 +94,34 @@ public class PharmacienService {
         }
     }
 
-    public PatientDTO mapToDto(Patient patient) {
+    private PatientDTO mapToDto(Patient patient) {
+        // Vérifier si le mot de passe est défini pour déterminer le statut
+        int status = (patient.getMotDePasse() != null && !patient.getMotDePasse().isEmpty()) ? 1 : 0;
+
+        // Mapper les ordonnances du patient en OrdonnanceDTO
         List<OrdonnanceDTO> ordonnances = patient.getOrdonnances().stream()
-                .map(ordonnance -> new OrdonnanceDTO(ordonnance.getId(), ordonnance.getDescription(), ordonnance.getDate()))
+                .map(ordonnance -> new OrdonnanceDTO(
+                        ordonnance.getId(),
+                        ordonnance.getDescription(),
+                        ordonnance.getDate(),
+                        null, // Éviter la récursion infinie en mettant null pour le patient
+                        ordonnance.getPharmacien(),
+                        ordonnance.getMedicaments().stream()
+                                .map(medicament -> new MedicamentDTO(
+                                        medicament.getId(),
+                                        medicament.getNom(),
+                                        medicament.getPosologie(),
+                                        medicament.getFrequence(),
+                                        medicament.getImage(),
+                                        ordonnance.getId(), // Associer l'ordonnance
+                                        patient.getId(), // Associer le patient
+                                        medicament.getRappels() // Liste des rappels
+                                ))
+                                .collect(Collectors.toList())
+                ))
                 .collect(Collectors.toList());
 
+        // Retourner l'objet PatientDTO avec les ordonnances correctement mappées
         return new PatientDTO(
                 patient.getCodePatient(),
                 patient.getNom(),
@@ -106,43 +129,96 @@ public class PharmacienService {
                 patient.getTel(),
                 patient.getCin(),
                 patient.getProfilePictureUrl(),
-                ordonnances
+                ordonnances, // Liste des ordonnances mappées
+                patient.getCreatedAt(),
+                patient.getUpdatedAt(),
+                status
         );
     }
 
-    public List<OrdonnanceDTO> listOrdonnance(){
-        try{
+    public List<OrdonnanceDTO> listOrdonnance() {
+        try {
             return ordonnanceRepository.findAll().stream()
-                    .map(ordonnance -> new OrdonnanceDTO(ordonnance.getId(), ordonnance.getDescription(), ordonnance.getDate()))
+                    .map(ordonnance -> new OrdonnanceDTO(
+                            ordonnance.getId(),
+                            ordonnance.getDescription(),
+                            ordonnance.getDate(),
+                            null, // Éviter la récursion infinie en mettant null pour le patient
+                            ordonnance.getPharmacien(),
+                            ordonnance.getMedicaments().stream()
+                                    .map(medicament -> new MedicamentDTO(
+                                            medicament.getId(),
+                                            medicament.getNom(),
+                                            medicament.getPosologie(),
+                                            medicament.getFrequence(),
+                                            medicament.getImage(),
+                                            ordonnance.getId(), // Associer l'ordonnance
+                                            null, // Patient non nécessaire ici
+                                            medicament.getRappels() // Liste des rappels
+                                    ))
+                                    .collect(Collectors.toList())
+                    ))
                     .collect(Collectors.toList());
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return List.of(); // Retourne une liste vide au lieu de null pour éviter les erreurs
         }
     }
 
     public List<PatientDTO> getPatientOrdonnances(String codePatient) {
-        try{
-            Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
-            if (patient.isPresent()){
-                return patient.get().getOrdonnances().stream()
-                        .map(ordonnance -> new OrdonnanceDTO(ordonnance.getId(), ordonnance.getDescription(), ordonnance.getDate()))
-                        .map(ordonnanceDTO -> new PatientDTO(
-                                patient.get().getCodePatient(),
-                                patient.get().getNom(),
-                                patient.get().getPrenom(),
-                                patient.get().getTel(),
-                                patient.get().getCin(),
-                                patient.get().getProfilePictureUrl(),
-                                List.of(ordonnanceDTO)
+        try {
+            Optional<Patient> patientOptional = patientRepository.findByCodePatient(codePatient);
+            if (patientOptional.isPresent()) {
+                Patient patient = patientOptional.get();
+
+                // Déterminer le statut du patient (0 si motDePasse null ou vide, 1 sinon)
+                int status = (patient.getMotDePasse() != null && !patient.getMotDePasse().isEmpty()) ? 1 : 0;
+
+                // Mapper les ordonnances du patient en OrdonnanceDTO
+                List<OrdonnanceDTO> ordonnances = patient.getOrdonnances().stream()
+                        .map(ordonnance -> new OrdonnanceDTO(
+                                ordonnance.getId(),
+                                ordonnance.getDescription(),
+                                ordonnance.getDate(),
+                                null, // Éviter la récursion infinie en mettant null pour patient
+                                ordonnance.getPharmacien(),
+                                ordonnance.getMedicaments().stream()
+                                        .map(medicament -> new MedicamentDTO(
+                                                medicament.getId(),
+                                                medicament.getNom(),
+                                                medicament.getPosologie(),
+                                                medicament.getFrequence(),
+                                                medicament.getImage(),
+                                                ordonnance.getId(), // Associer l'ordonnance
+                                                patient.getId(), // Associer le patient
+                                                medicament.getRappels() // Liste des rappels
+                                        ))
+                                        .collect(Collectors.toList())
                         ))
                         .collect(Collectors.toList());
-            }else {
-                return null;
+
+                // Créer le PatientDTO avec statut et ordonnances
+                PatientDTO patientDTO = new PatientDTO(
+                        patient.getCodePatient(),
+                        patient.getNom(),
+                        patient.getPrenom(),
+                        patient.getTel(),
+                        patient.getCin(),
+                        patient.getProfilePictureUrl(),
+                        ordonnances,
+                        patient.getCreatedAt(),
+                        patient.getUpdatedAt(),
+                        status // Ajout du statut
+                );
+
+                // Retourner le PatientDTO dans une liste
+                return List.of(patientDTO);
+            } else {
+                return List.of(); // Retourne une liste vide au lieu de null si aucun patient trouvé
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return List.of(); // Retourne une liste vide en cas d'erreur pour éviter NullPointerException
         }
     }
 
@@ -154,4 +230,5 @@ public class PharmacienService {
             throw new IllegalArgumentException("Patient not found with code: " + codePatient);
         }
     }
+
 }

@@ -7,6 +7,7 @@ import com.microservices.pharmacare.dao.entities.Patient;
 import com.microservices.pharmacare.dao.repository.MedicamentRepository;
 import com.microservices.pharmacare.dao.repository.OrdonnanceRepository;
 import com.microservices.pharmacare.dao.repository.PatientRepository;
+import com.microservices.pharmacare.dto.MedicamentDTO;
 import com.microservices.pharmacare.dto.OrdonnanceDTO;
 import com.microservices.pharmacare.dto.PatientCreateDto;
 import com.microservices.pharmacare.dto.PatientDTO;
@@ -87,9 +88,41 @@ public class PatientService {
     }
 
     private PatientDTO mapToDto(Patient patient) {
-        List<OrdonnanceDTO> ordonnances = patient.getOrdonnances().stream()
-                .map(ordonnance -> new OrdonnanceDTO(ordonnance.getId(), ordonnance.getDescription(), ordonnance.getDate()))
-                .collect(Collectors.toList());
+        if (patient == null) {
+            return null;
+        }
+
+        // Déterminer le statut en fonction de la présence du mot de passe
+        int status = (patient.getMotDePasse() != null && !patient.getMotDePasse().isEmpty()) ? 1 : 0;
+
+        // Mapper les ordonnances en DTOs
+        List<OrdonnanceDTO> ordonnances = (patient.getOrdonnances() != null)
+                ? patient.getOrdonnances().stream()
+                .map(ordonnance -> new OrdonnanceDTO(
+                        ordonnance.getId(),
+                        ordonnance.getDescription(),
+                        ordonnance.getDate(),
+                        null, // Pas besoin de mapper le patient ici pour éviter la récursivité
+                        ordonnance.getPharmacien(),
+                        ordonnance.getMedicaments() != null
+                                ? ordonnance.getMedicaments().stream()
+                                .map(medicament -> new MedicamentDTO(
+                                        medicament.getId(),
+                                        medicament.getNom(),
+                                        medicament.getPosologie(),
+                                        medicament.getFrequence(),
+                                        medicament.getImage(),
+                                        ordonnance.getId(), // Associer l'ordonnance ID
+                                        patient.getId(), // Associer le patient ID
+                                        medicament.getRappels() // Liste des rappels
+                                ))
+                                .toList()
+                                : List.of()
+                ))
+                .collect(Collectors.toList())
+                : List.of();
+
+        // Retourner le DTO du patient
         return new PatientDTO(
                 patient.getCodePatient(),
                 patient.getNom(),
@@ -97,7 +130,10 @@ public class PatientService {
                 patient.getTel(),
                 patient.getCin(),
                 patient.getProfilePictureUrl(),
-                ordonnances
+                ordonnances,
+                patient.getCreatedAt(),
+                patient.getUpdatedAt(),
+                status
         );
     }
 

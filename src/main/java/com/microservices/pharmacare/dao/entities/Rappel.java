@@ -2,6 +2,8 @@ package com.microservices.pharmacare.dao.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -23,6 +25,14 @@ public class Rappel {
 
     @Column(nullable = false)
     private LocalDateTime dateHeure;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt; // Automatically set when the entity is created
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private LocalDateTime updatedAt; // Automatically updated when the entity is updated
 
     @ManyToOne
     @JoinColumn(name = "medicament_id", nullable = false)

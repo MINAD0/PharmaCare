@@ -23,7 +23,10 @@ public class Medicament {
     private String posologie;
 
     @Column(nullable = false)
-    private String fréquence;
+    private String frequence;
+
+    @Column(nullable = false)
+    private String image;
 
     @ManyToOne
     @JoinColumn(name = "ordonnance_id", nullable = false)
