@@ -2,8 +2,10 @@ package com.microservices.pharmacare.dao.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -27,10 +29,11 @@ public class Ordonnance {
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    @ManyToOne
-    @JoinColumn(name = "pharmacien_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pharmacien_id", nullable = true)
     private Pharmacien pharmacien;
 
     @OneToMany(mappedBy = "ordonnance", cascade = CascadeType.ALL)
-    private List<Medicament> médicaments;
+    @BatchSize(size = 10)
+    private List<Medicament> médicaments = new ArrayList<>();
 }

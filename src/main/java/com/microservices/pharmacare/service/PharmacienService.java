@@ -1,13 +1,16 @@
 package com.microservices.pharmacare.service;
 
+import com.microservices.pharmacare.dao.entities.Medicament;
+import com.microservices.pharmacare.dao.entities.Ordonnance;
 import com.microservices.pharmacare.dao.entities.Patient;
+import com.microservices.pharmacare.dao.entities.Pharmacien;
+import com.microservices.pharmacare.dao.repository.MedicamentRepository;
 import com.microservices.pharmacare.dao.repository.OrdonnanceRepository;
 import com.microservices.pharmacare.dao.repository.PatientRepository;
 import com.microservices.pharmacare.dao.repository.PharmacienRepository;
-import com.microservices.pharmacare.dto.OrdonnanceDTO;
-import com.microservices.pharmacare.dto.PatientCreateDto;
-import com.microservices.pharmacare.dto.PatientDTO;
+import com.microservices.pharmacare.dto.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,12 +20,14 @@ import java.util.stream.Collectors;
 public class PharmacienService {
 
     private final PharmacienRepository pharmacienRepository;
+    private final MedicamentRepository medicamentRepository;
     private final PatientRepository patientRepository;
     private final OrdonnanceRepository ordonnanceRepository;
     private final SmsService smsService;
 
-    public PharmacienService(PharmacienRepository pharmacienRepository, PatientRepository patientRepository, OrdonnanceRepository ordonnanceRepository, SmsService smsService) {
+    public PharmacienService(PharmacienRepository pharmacienRepository, MedicamentRepository medicamentRepository, PatientRepository patientRepository, OrdonnanceRepository ordonnanceRepository, SmsService smsService) {
         this.pharmacienRepository = pharmacienRepository;
+        this.medicamentRepository = medicamentRepository;
         this.patientRepository = patientRepository;
         this.ordonnanceRepository = ordonnanceRepository;
         this.smsService = smsService;
@@ -94,8 +99,27 @@ public class PharmacienService {
     }
 
     public PatientDTO mapToDto(Patient patient) {
+        // Convert ordonnances to DTO, including medicaments
         List<OrdonnanceDTO> ordonnances = patient.getOrdonnances().stream()
-                .map(ordonnance -> new OrdonnanceDTO(ordonnance.getId(), ordonnance.getDescription(), ordonnance.getDate()))
+                .map(ordonnance -> {
+                    // Convert each medicament into MedicamentCreateDTO
+                    List<MedicamentCreateDTO> medicamentDTOs = ordonnance.getMédicaments().stream()
+                            .map(medicament -> new MedicamentCreateDTO(
+                                    medicament.getNom(),
+                                    medicament.getPosologie(),
+                                    medicament.getFréquence()
+                            ))
+                            .collect(Collectors.toList());
+
+                    // Create and return the OrdonnanceDTO
+                    return new OrdonnanceDTO(
+                            ordonnance.getId(),
+                            ordonnance.getDescription(),
+                            ordonnance.getDate(),
+                            ordonnance.getPatient().getCodePatient(),
+                            medicamentDTOs // Pass the list of medicamentDTOs here
+                    );
+                })
                 .collect(Collectors.toList());
 
         return new PatientDTO(
@@ -109,40 +133,144 @@ public class PharmacienService {
         );
     }
 
-    public List<OrdonnanceDTO> listOrdonnance(){
-        try{
+
+    public List<OrdonnanceDTO> listOrdonnance() {
+        try {
             return ordonnanceRepository.findAll().stream()
-                    .map(ordonnance -> new OrdonnanceDTO(ordonnance.getId(), ordonnance.getDescription(), ordonnance.getDate()))
+                    .map(ordonnance -> {
+                        // Map the Medicament list for the ordonnance to MedicamentCreateDTO
+                        List<MedicamentCreateDTO> medicamentDTOs = ordonnance.getMédicaments().stream()
+                                .map(medicament -> new MedicamentCreateDTO(
+                                        medicament.getNom(),
+                                        medicament.getPosologie(),
+                                        medicament.getFréquence()
+                                ))
+                                .collect(Collectors.toList());
+
+                        // Return OrdonnanceDTO with the list of MedicamentDTOs
+                        return new OrdonnanceDTO(
+                                ordonnance.getId(),
+                                ordonnance.getDescription(),
+                                ordonnance.getDate(),
+                                ordonnance.getPatient().getCodePatient(),
+                                medicamentDTOs
+                        );
+                    })
                     .collect(Collectors.toList());
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
+
 
     public List<PatientDTO> getPatientOrdonnances(String codePatient) {
-        try{
+        try {
             Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
-            if (patient.isPresent()){
-                return patient.get().getOrdonnances().stream()
-                        .map(ordonnance -> new OrdonnanceDTO(ordonnance.getId(), ordonnance.getDescription(), ordonnance.getDate()))
-                        .map(ordonnanceDTO -> new PatientDTO(
-                                patient.get().getCodePatient(),
-                                patient.get().getNom(),
-                                patient.get().getPrenom(),
-                                patient.get().getTel(),
-                                patient.get().getCin(),
-                                patient.get().getProfilePictureUrl(),
-                                List.of(ordonnanceDTO)
-                        ))
+            if (patient.isPresent()) {
+                // Map the ordonnances of the patient to OrdonnanceDTO
+                List<OrdonnanceDTO> ordonnanceDTOs = patient.get().getOrdonnances().stream()
+                        .map(ordonnance -> {
+                            // Convert each Medicament to MedicamentCreateDTO
+                            List<MedicamentCreateDTO> medicamentDTOs = ordonnance.getMédicaments().stream()
+                                    .map(medicament -> new MedicamentCreateDTO(
+                                            medicament.getNom(),
+                                            medicament.getPosologie(),
+                                            medicament.getFréquence()
+                                    ))
+                                    .collect(Collectors.toList());
+
+                            // Return OrdonnanceDTO with all medicament details
+                            return new OrdonnanceDTO(
+                                    ordonnance.getId(),
+                                    ordonnance.getDescription(),
+                                    ordonnance.getDate(),
+                                    ordonnance.getPatient().getCodePatient(),
+                                    medicamentDTOs
+                            );
+                        })
                         .collect(Collectors.toList());
-            }else {
-                return null;
+
+                // Create and return a single PatientDTO with all ordonnances
+                Patient patientEntity = patient.get();
+                PatientDTO patientDTO = new PatientDTO(
+                        patientEntity.getCodePatient(),
+                        patientEntity.getNom(),
+                        patientEntity.getPrenom(),
+                        patientEntity.getTel(),
+                        patientEntity.getCin(),
+                        patientEntity.getProfilePictureUrl(),
+                        ordonnanceDTOs // Include all ordonnanceDTOs in the list
+                );
+
+                // Wrap the patientDTO in a list (you may change this if you need just one object instead of a list)
+                return List.of(patientDTO);
+            } else {
+                return null; // Or handle error if patient is not found
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
+    @Transactional
+    public OrdonnanceDTO createOrdonnanceWithMedicaments(OrdonnanceCreateDTO ordonnanceCreateDTO) {
+        // Retrieve the patient based on the provided patient code
+        Patient patient = patientRepository.findByCodePatient(ordonnanceCreateDTO.getCodePatient())
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+
+        Pharmacien pharmacien = pharmacienRepository.findByEmail("admin@example.com")  // This should be dynamic (e.g., logged-in user)
+                .orElseThrow(() -> new RuntimeException("Pharmacien not found"));
+
+        // Create and save the ordonnance
+        Ordonnance ordonnance = Ordonnance.builder()
+                .description(ordonnanceCreateDTO.getDescription())
+                .date(ordonnanceCreateDTO.getDate())
+                .patient(patient)
+                .pharmacien(pharmacien)
+                .build();
+
+        Ordonnance savedOrdonnance = ordonnanceRepository.save(ordonnance);
+
+        // Create and save the associated medicaments
+        ordonnanceCreateDTO.getMedicaments().forEach(medicamentDTO -> {
+            Medicament medicament = Medicament.builder()
+                    .nom(medicamentDTO.getNom())
+                    .posologie(medicamentDTO.getPosologie())
+                    .fréquence(medicamentDTO.getFrequence())
+                    .ordonnance(savedOrdonnance)
+                    .patient(patient)  // Assign the same patient
+                    .build();
+
+            medicamentRepository.save(medicament);
+        });
+
+        return mapToDto(savedOrdonnance);
+    }
+
+    // Helper method to map Ordonnance to DTO
+    private OrdonnanceDTO mapToDto(Ordonnance ordonnance) {
+        // Assuming that MedicamentDTO is also a part of OrdonnanceDTO
+        List<MedicamentCreateDTO> medicamentDTOS = ordonnance.getMédicaments().stream()
+                .map(medicament -> new MedicamentCreateDTO(
+                        medicament.getNom(),
+                        medicament.getPosologie(),
+                        medicament.getFréquence()
+                ))
+                .collect(Collectors.toList());
+
+        OrdonnanceDTO ordonnanceDTO = new OrdonnanceDTO( ordonnance.getId(),
+                ordonnance.getDescription(),
+                ordonnance.getDate(),
+                ordonnance.getPatient().getCodePatient(),
+                medicamentDTOS);
+        ordonnanceDTO.setId(ordonnance.getId());
+        ordonnanceDTO.setDescription(ordonnance.getDescription());
+        ordonnanceDTO.setDate(ordonnance.getDate());
+        ordonnanceDTO.setCodePatient(ordonnance.getPatient().getCodePatient());
+        ordonnanceDTO.setMedicaments(medicamentDTOS);
+
+        return ordonnanceDTO;
+    }
 }

@@ -1,6 +1,8 @@
 package com.microservices.pharmacare.controller;
 
+import com.microservices.pharmacare.dao.entities.Ordonnance;
 import com.microservices.pharmacare.dao.entities.Patient;
+import com.microservices.pharmacare.dto.OrdonnanceCreateDTO;
 import com.microservices.pharmacare.dto.OrdonnanceDTO;
 import com.microservices.pharmacare.dto.PatientCreateDto;
 import com.microservices.pharmacare.dto.PatientDTO;
@@ -39,7 +41,6 @@ public class PharmacienController {
         return ResponseEntity.ok(patients);
     }
 
-
     @GetMapping("/patient/{codePatient}")
     public ResponseEntity<Optional<PatientDTO>> getPatient(@PathVariable("codePatient")  String codePatient) {
         Optional<PatientDTO> patient = pharmacienService.getPatientByCode(codePatient);
@@ -51,14 +52,11 @@ public class PharmacienController {
     }
 
 //    @SecurityRequirement(name = "BearerAuth")
-
     @GetMapping("/ordonnances")
     public ResponseEntity<List<OrdonnanceDTO>> getOrdonnances() {
         List<OrdonnanceDTO> ordonnances = pharmacienService.listOrdonnance();
         return ResponseEntity.ok(ordonnances);
     }
-
-//    @SecurityRequirement(name = "BearerAuth")
 
     @GetMapping("/patient/{codePatient}/ordonnances")
     public ResponseEntity<List<PatientDTO>> getPatientOrdonnances(@PathVariable("codePatient")  String codePatient) {
@@ -69,6 +67,20 @@ public class PharmacienController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
     }
+
+    // Endpoint to create Ordonnance with Medicaments
+    @Operation(summary = "Create Ordonnance with Medicaments", description = "Create an ordonnance and associate it with medicaments for a specific patient.")
+    @PostMapping("/ordonnance")
+    public ResponseEntity<OrdonnanceDTO> createOrdonnanceWithMedicaments(@RequestBody OrdonnanceCreateDTO ordonnanceCreateDTO) {
+        try {
+            OrdonnanceDTO ordonnanceDTO = pharmacienService.createOrdonnanceWithMedicaments(ordonnanceCreateDTO);
+            return new ResponseEntity<>(ordonnanceDTO, HttpStatus.CREATED);
+        } catch (Exception e) {
+            // Handle exceptions
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
 
 }

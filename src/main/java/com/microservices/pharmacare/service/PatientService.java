@@ -7,6 +7,7 @@ import com.microservices.pharmacare.dao.entities.Patient;
 import com.microservices.pharmacare.dao.repository.MedicamentRepository;
 import com.microservices.pharmacare.dao.repository.OrdonnanceRepository;
 import com.microservices.pharmacare.dao.repository.PatientRepository;
+import com.microservices.pharmacare.dto.MedicamentCreateDTO;
 import com.microservices.pharmacare.dto.OrdonnanceDTO;
 import com.microservices.pharmacare.dto.PatientCreateDto;
 import com.microservices.pharmacare.dto.PatientDTO;
@@ -87,9 +88,26 @@ public class PatientService {
     }
 
     private PatientDTO mapToDto(Patient patient) {
+
         List<OrdonnanceDTO> ordonnances = patient.getOrdonnances().stream()
-                .map(ordonnance -> new OrdonnanceDTO(ordonnance.getId(), ordonnance.getDescription(), ordonnance.getDate()))
-                .collect(Collectors.toList());
+                .map(ordonnance -> {
+                    List<MedicamentCreateDTO> medicamentDTOs = ordonnance.getMédicaments().stream()
+                            .map(medicament -> new MedicamentCreateDTO(
+                                    medicament.getNom(),
+                                    medicament.getPosologie(),
+                                    medicament.getFréquence()
+                            ))
+                            .collect(Collectors.toList());
+
+                    return new OrdonnanceDTO(
+                            ordonnance.getId(),
+                            ordonnance.getDescription(),
+                            ordonnance.getDate(),
+                            ordonnance.getPatient().getCodePatient(),
+                            medicamentDTOs // Pass the list of medicamentDTOs here
+                    );
+                }).collect(Collectors.toList());
+
         return new PatientDTO(
                 patient.getCodePatient(),
                 patient.getNom(),
