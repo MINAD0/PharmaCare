@@ -42,6 +42,11 @@ public class Ordonnance {
     @JoinColumn(name = "pharmacien_id", nullable = false)
     private Pharmacien pharmacien;
 
-    @OneToMany(mappedBy = "ordonnance", cascade = CascadeType.ALL)
+    @ManyToMany
+    @JoinTable(
+            name = "ordonnance_detail",
+            joinColumns = @JoinColumn(name = "ordonnance_id"),
+            inverseJoinColumns = @JoinColumn(name = "medicament_id")
+    )
     private List<Medicament> medicaments;
 }

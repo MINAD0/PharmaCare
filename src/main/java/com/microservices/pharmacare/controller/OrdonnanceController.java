@@ -9,7 +9,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/ordonnances")
-@CrossOrigin(origins = "*") // Permettre l'accès depuis n'importe quel domaine
+@CrossOrigin(origins = "*") // Permet l'accès depuis n'importe quel domaine
 public class OrdonnanceController {
 
     private final OrdonnanceService ordonnanceService;
@@ -19,7 +19,7 @@ public class OrdonnanceController {
     }
 
     /**
-     * Récupérer la liste de toutes les ordonnances.
+     * ✅ Récupérer toutes les ordonnances.
      */
     @GetMapping
     public ResponseEntity<List<OrdonnanceDTO>> getAllOrdonnances() {
@@ -28,22 +28,22 @@ public class OrdonnanceController {
     }
 
     /**
-     * Ajouter une nouvelle ordonnance.
+     * ✅ Créer une nouvelle ordonnance.
      */
-    @PostMapping("/create")
-    public ResponseEntity<String> createOrdonnance(@RequestBody OrdonnanceDTO ordonnanceDTO) {
+    @PostMapping
+    public ResponseEntity<?> createOrdonnance(@RequestBody OrdonnanceDTO ordonnanceDTO) {
         try {
-            ordonnanceService.createOrdonnance(ordonnanceDTO);
-            return ResponseEntity.ok("Ordonnance créée avec succès !");
+            OrdonnanceDTO createdOrdonnance = ordonnanceService.createOrdonnance(ordonnanceDTO);
+            return ResponseEntity.ok(createdOrdonnance);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Erreur lors de la création de l'ordonnance.");
+            return ResponseEntity.internalServerError().body("Une erreur est survenue lors de la création de l'ordonnance.");
         }
     }
 
     /**
-     * Récupérer une ordonnance par son ID.
+     * ✅ Récupérer une ordonnance par son ID.
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getOrdonnanceById(@PathVariable Long id) {
@@ -56,10 +56,10 @@ public class OrdonnanceController {
     }
 
     /**
-     * Supprimer une ordonnance par son ID.
+     * ✅ Supprimer une ordonnance par son ID.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteOrdonnance(@PathVariable Long id) {
+    public ResponseEntity<?> deleteOrdonnance(@PathVariable Long id) {
         try {
             ordonnanceService.deleteOrdonnance(id);
             return ResponseEntity.ok("Ordonnance supprimée avec succès.");

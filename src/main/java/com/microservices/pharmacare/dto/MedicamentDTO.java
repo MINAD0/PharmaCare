@@ -13,11 +13,11 @@ import java.util.List;
 public class MedicamentDTO {
     private Long id;
     private String nom;
-    private String posologie;
-    private String frequence;
     private String image;
     private Long ordonnanceId; // ID de l'ordonnance associée
     private Long patientId; // ID du patient associé
     private List<Rappel> rappels; // Liste des rappels associés
+    private List<OrdonnanceDetailDTO> OrdonnanceDetail; // Liste des posologies et fréquences
+
 
 }

@@ -1,32 +1,35 @@
 package com.microservices.pharmacare.service;
 
-import com.microservices.pharmacare.dao.entities.Medicament;
-import com.microservices.pharmacare.dao.entities.Ordonnance;
-import com.microservices.pharmacare.dao.entities.Rappel;
-import com.microservices.pharmacare.dao.entities.Patient;
-import com.microservices.pharmacare.dao.entities.Pharmacien;
+import com.microservices.pharmacare.dao.entities.*;
+import com.microservices.pharmacare.dao.repository.OrdonnanceDetailRepository;
 import com.microservices.pharmacare.dao.repository.OrdonnanceRepository;
 import com.microservices.pharmacare.dao.repository.RappelRepository;
 import com.microservices.pharmacare.dto.OrdonnanceDTO;
 import com.microservices.pharmacare.dto.MedicamentDTO;
+import com.microservices.pharmacare.dto.OrdonnanceDetailDTO;
 import com.microservices.pharmacare.dto.PatientDTO;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 
 @Service
 public class OrdonnanceService {
 
     private final OrdonnanceRepository ordonnanceRepository;
+    private final OrdonnanceDetailRepository ordonnanceDetailRepository;
     private final RappelRepository rappelRepository;
 
-    public OrdonnanceService(OrdonnanceRepository ordonnanceRepository, RappelRepository rappelRepository) {
+    public OrdonnanceService(OrdonnanceRepository ordonnanceRepository, OrdonnanceDetailRepository ordonnanceDetailRepository, RappelRepository rappelRepository) {
         this.ordonnanceRepository = ordonnanceRepository;
+        this.ordonnanceDetailRepository = ordonnanceDetailRepository;
         this.rappelRepository = rappelRepository;
     }
+
     public OrdonnanceDTO getOrdonnanceById(Long id) {
         Optional<Ordonnance> ordonnanceOptional = ordonnanceRepository.findById(id);
 
@@ -55,14 +58,30 @@ public class OrdonnanceService {
     }
 
 
+    private List<Rappel> createRappelFromMedicament(MedicamentDTO medicamentDTO, Ordonnance ordonnance) {
+        List<Rappel> rappels = new ArrayList<>();
 
-    public Ordonnance createOrdonnance(OrdonnanceDTO ordonnanceDTO) {
-        // Vérifier que l'ordonnance a bien un patient et un pharmacien
+        for (OrdonnanceDetailDTO detailDTO : medicamentDTO.getOrdonnanceDetail()) {
+            Rappel rappel = Rappel.builder()
+                    .titre("Rappel pour le médicament: " + medicamentDTO.getNom())
+                    .description("Posologie: " + detailDTO.getPosologie() +
+                            ", Fréquence: " + detailDTO.getFrequence())
+                    .dateHeure(LocalDateTime.now().plusDays(1)) // Rappel pour le lendemain
+                    .medicament(Medicament.builder().id(medicamentDTO.getId()).build())
+                    .patient(ordonnance.getPatient())
+                    .build();
+            rappels.add(rappel);
+        }
+
+        return rappels;
+    }
+
+    public OrdonnanceDTO createOrdonnance(OrdonnanceDTO ordonnanceDTO) {
         if (ordonnanceDTO.getPatient() == null || ordonnanceDTO.getPharmacien() == null) {
             throw new IllegalArgumentException("Le patient et le pharmacien sont obligatoires pour créer une ordonnance.");
         }
 
-        // Construire l'entité Ordonnance
+        // Création de l'entité Ordonnance
         Ordonnance ordonnance = Ordonnance.builder()
                 .date(ordonnanceDTO.getDate())
                 .description(ordonnanceDTO.getDescription())
@@ -70,30 +89,40 @@ public class OrdonnanceService {
                 .pharmacien(Pharmacien.builder().id(ordonnanceDTO.getPharmacien().getId()).build())
                 .build();
 
-        // Sauvegarder l'ordonnance en base
+        // Sauvegarde en base
         ordonnance = ordonnanceRepository.save(ordonnance);
 
-        // Créer et associer les rappels pour chaque médicament
+        // Traitement des détails d'ordonnance (médicaments, posologies, fréquences)
         Ordonnance finalOrdonnance = ordonnance;
-        List<Rappel> rappels = ordonnanceDTO.getMedicaments().stream()
-                .map(medicamentDTO -> createRappelFromMedicament(medicamentDTO, finalOrdonnance))
+        List<OrdonnanceDetail> prescriptionDetails = ordonnanceDTO.getMedicaments().stream()
+                .flatMap(medicamentDTO -> medicamentDTO.getOrdonnanceDetail().stream()
+                        .map(detailDTO -> OrdonnanceDetail.builder()
+                                .posologie(detailDTO.getPosologie())
+                                .frequence(detailDTO.getFrequence())
+                                .medicament(Medicament.builder().id(medicamentDTO.getId()).build())
+                                .ordonnance(finalOrdonnance)
+                                .build()))
                 .collect(Collectors.toList());
 
-        // Enregistrer les rappels
+        // Enregistrement des détails de l'ordonnance
+        ordonnanceDetailRepository.saveAll(prescriptionDetails);
+
+        // Génération et sauvegarde des rappels
+        List<Rappel> rappels = ordonnanceDTO.getMedicaments().stream()
+                .flatMap(medicamentDTO -> createRappelFromMedicament(medicamentDTO, finalOrdonnance).stream())
+                .collect(Collectors.toList());
+
         rappelRepository.saveAll(rappels);
 
-        return ordonnance;
-    }
-
-    private Rappel createRappelFromMedicament(MedicamentDTO medicamentDTO, Ordonnance ordonnance) {
-        return Rappel.builder()
-                .titre("Rappel pour le médicament: " + medicamentDTO.getNom())
-                .description("Posologie: " + medicamentDTO.getPosologie() +
-                        ", Fréquence: " + medicamentDTO.getFrequence())
-                .dateHeure(LocalDateTime.now().plusDays(1)) // Rappel pour le lendemain
-                .medicament(Medicament.builder().id(medicamentDTO.getId()).build())
-                .patient(ordonnance.getPatient())
-                .build();
+        // 🔹 Conversion de l'ordonnance en DTO avant de la retourner
+        return new OrdonnanceDTO(
+                ordonnance.getId(),
+                ordonnance.getDescription(),
+                ordonnance.getDate(),
+                ordonnanceDTO.getPatient(),
+                ordonnanceDTO.getPharmacien(),
+                ordonnanceDTO.getMedicaments()
+        );
     }
 
     private PatientDTO convertToPatientDTO(Patient patient) {
@@ -117,16 +146,43 @@ public class OrdonnanceService {
         if (medicament == null) {
             return null;
         }
+
+        // Récupérer les détails de l'ordonnance liés à ce médicament
+        Optional<OrdonnanceDetail> optionalOrdonnanceDetail = ordonnanceDetailRepository.findByMedicament(medicament);
+
+        List<OrdonnanceDetailDTO> ordonnanceDetailDTOs = new ArrayList<>();
+        Long ordonnanceId = null;
+        Long patientId = null;
+
+        if (optionalOrdonnanceDetail.isPresent()) {
+            OrdonnanceDetail detail = optionalOrdonnanceDetail.get();
+
+            // Vérifier si le patient a un codePatient valide
+            if (detail.getOrdonnance().getPatient().getCodePatient() != null) {
+                patientId = Long.parseLong(detail.getOrdonnance().getPatient().getCodePatient());
+            }
+
+            ordonnanceId = detail.getOrdonnance().getId();
+
+            // Construire le DTO de détail d'ordonnance avec 5 paramètres
+            ordonnanceDetailDTOs.add(new OrdonnanceDetailDTO(
+                    detail.getId(),
+                    detail.getPosologie(),
+                    detail.getFrequence(),
+                    medicament.getId(), // Correction : ajout de `medicamentId`
+                    ordonnanceId
+            ));
+        }
+
+        // Retourner le DTO du médicament avec les détails associés
         return new MedicamentDTO(
                 medicament.getId(),
                 medicament.getNom(),
-                medicament.getPosologie(),
-                medicament.getFrequence(),
                 medicament.getImage(),
-                medicament.getOrdonnance().getId(), // ✅ ID de l'ordonnance associée
-                medicament.getOrdonnance().getPatient().getCodePatient() != null ?
-                        Long.parseLong(medicament.getOrdonnance().getPatient().getCodePatient()) : null, // ✅ Convertir en Long
-                medicament.getRappels()
+                ordonnanceId,
+                patientId,
+                medicament.getRappels(),
+                ordonnanceDetailDTOs // Liste des posologies et fréquences
         );
     }
 

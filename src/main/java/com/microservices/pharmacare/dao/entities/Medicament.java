@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @Entity
 @Getter
@@ -20,17 +21,10 @@ public class Medicament {
     private String nom;
 
     @Column(nullable = false)
-    private String posologie;
-
-    @Column(nullable = false)
-    private String frequence;
-
-    @Column(nullable = false)
     private String image;
 
-    @ManyToOne
-    @JoinColumn(name = "ordonnance_id", nullable = false)
-    private Ordonnance ordonnance;
+  @OneToMany(mappedBy = "medicament", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<OrdonnanceDetail> OrdonnanceDetail; // Liste des posologies et fréquences
 
     @OneToMany(mappedBy = "medicament", cascade = CascadeType.ALL)
     private List<Rappel> rappels;
@@ -38,4 +32,7 @@ public class Medicament {
     @ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
+
+    @ManyToMany(mappedBy = "medicaments")
+    private List<Ordonnance> ordonnances;
 }
