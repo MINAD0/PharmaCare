@@ -2,10 +2,12 @@ package com.microservices.pharmacare.dao.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -20,7 +22,7 @@ public class Ordonnance {
     private Long id;
 
     @Column(nullable = false)
-    private LocalDate date;
+    private String nom;
 
     @Column(nullable = false)
     private String description;
@@ -29,11 +31,19 @@ public class Ordonnance {
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pharmacien_id", nullable = true)
+    @ManyToOne
+    @JoinColumn(name = "pharmacien_id", nullable = false)
     private Pharmacien pharmacien;
 
-    @OneToMany(mappedBy = "ordonnance", cascade = CascadeType.ALL)
-    @BatchSize(size = 10)
-    private List<Medicament> médicaments = new ArrayList<>();
+    @OneToMany(mappedBy = "ordonnance", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<OrdonnanceMedicament> ordonnanceMedicaments = new ArrayList<>();
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @CreationTimestamp
+    private Date createdAt;  // Ensure this field exists!
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private LocalDateTime updatedAt; // Automatically updated when the entity is updated
 }

@@ -1,10 +1,9 @@
 package com.microservices.pharmacare.dto;
 
-import com.microservices.pharmacare.dao.entities.Ordonnance;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
@@ -12,10 +11,9 @@ import java.util.List;
 @AllArgsConstructor
 public class OrdonnanceDTO {
     private Long id;
+//    private String nom;
     private String description;
-    private LocalDate date;
-    private String codePatient;  // Patient code (this could be a reference to the Patient)
-    private List<MedicamentCreateDTO> medicaments;
-
-
+    private Date createdAt;
+    private String codePatient;
+    private List<OrdonnanceMedicamentDTO> medicaments; // List of Medicaments with specific dosage
 }

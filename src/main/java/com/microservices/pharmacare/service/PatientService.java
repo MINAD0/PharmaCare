@@ -2,15 +2,14 @@ package com.microservices.pharmacare.service;
 
 import com.microservices.pharmacare.dao.entities.Medicament;
 import com.microservices.pharmacare.dao.entities.Ordonnance;
+import com.microservices.pharmacare.dao.entities.OrdonnanceMedicament;
 import com.microservices.pharmacare.dao.entities.Patient;
 
 import com.microservices.pharmacare.dao.repository.MedicamentRepository;
+import com.microservices.pharmacare.dao.repository.OrdonnacneMedicamentRepository;
 import com.microservices.pharmacare.dao.repository.OrdonnanceRepository;
 import com.microservices.pharmacare.dao.repository.PatientRepository;
-import com.microservices.pharmacare.dto.MedicamentCreateDTO;
-import com.microservices.pharmacare.dto.OrdonnanceDTO;
-import com.microservices.pharmacare.dto.PatientCreateDto;
-import com.microservices.pharmacare.dto.PatientDTO;
+import com.microservices.pharmacare.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,14 +23,14 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
     private final OrdonnanceRepository ordonnanceRepository;
-    private final MedicamentRepository medicamentRepository;
+    private final OrdonnacneMedicamentRepository ordonnacneMedicamentRepository;
     private final PharmacienService pharmacienService;
 
     @Autowired
-    public PatientService(PatientRepository patientRepository, OrdonnanceRepository ordonnanceRepository, MedicamentRepository medicamentRepository, PharmacienService pharmacienService) {
+    public PatientService(PatientRepository patientRepository, OrdonnanceRepository ordonnanceRepository, OrdonnacneMedicamentRepository ordonnacneMedicamentRepository, PharmacienService pharmacienService) {
         this.patientRepository = patientRepository;
         this.ordonnanceRepository = ordonnanceRepository;
-        this.medicamentRepository = medicamentRepository;
+        this.ordonnacneMedicamentRepository = ordonnacneMedicamentRepository;
         this.pharmacienService = pharmacienService;
     }
 
@@ -70,8 +69,6 @@ public class PatientService {
     }
 
 
-
-
     public void deletePatientByCode(String codePatient) {
         Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
         if (patient.isPresent()) {
@@ -88,23 +85,25 @@ public class PatientService {
     }
 
     private PatientDTO mapToDto(Patient patient) {
-
         List<OrdonnanceDTO> ordonnances = patient.getOrdonnances().stream()
                 .map(ordonnance -> {
-                    List<MedicamentCreateDTO> medicamentDTOs = ordonnance.getMédicaments().stream()
-                            .map(medicament -> new MedicamentCreateDTO(
-                                    medicament.getNom(),
-                                    medicament.getPosologie(),
-                                    medicament.getFréquence()
+                    // Map OrdonnanceMedicaments to OrdonnanceMedicamentDTO
+                    List<OrdonnanceMedicamentDTO> medicamentDTOs = ordonnance.getOrdonnanceMedicaments().stream()
+                            .map(ordMed -> new OrdonnanceMedicamentDTO(
+                                    ordMed.getMedicament().getId(),
+                                    ordMed.getMedicament().getNom(),
+                                    ordMed.getPosologie(),
+                                    ordMed.getFrequence()
                             ))
                             .collect(Collectors.toList());
 
                     return new OrdonnanceDTO(
                             ordonnance.getId(),
                             ordonnance.getDescription(),
-                            ordonnance.getDate(),
+//                            ordonnance.getNom(), // Ensure correct field usage
+                            ordonnance.getCreatedAt(),
                             ordonnance.getPatient().getCodePatient(),
-                            medicamentDTOs // Pass the list of medicamentDTOs here
+                            medicamentDTOs // Pass the list of medicaments
                     );
                 }).collect(Collectors.toList());
 
@@ -114,21 +113,19 @@ public class PatientService {
                 patient.getPrenom(),
                 patient.getTel(),
                 patient.getCin(),
-                patient.getProfilePictureUrl(),
-                ordonnances
+                patient.getProfilePictureUrl(), // Ensure profile picture is included
+                ordonnances // Include the ordonnances with medicaments
         );
     }
 
-
-    public List<Medicament> getHistoriqueMedicamentsByCodePatient(String codePatient) {
+    public List<OrdonnanceMedicament> getHistoriqueMedicamentsByCodePatient(String codePatient) {
         Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
         if (patient.isPresent()) {
-            return medicamentRepository.findByPatientId(patient.get().getId());
+            return ordonnacneMedicamentRepository.findByOrdonnance_Patient(patient.get());
         } else {
             throw new IllegalArgumentException("No patient found with code: " + codePatient);
         }
     }
-
 
     public boolean verifyPatientCode(String codePatient) {
         return patientRepository.existsByCodePatient(codePatient);

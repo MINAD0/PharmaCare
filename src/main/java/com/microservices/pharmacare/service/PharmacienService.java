@@ -99,15 +99,16 @@ public class PharmacienService {
     }
 
     public PatientDTO mapToDto(Patient patient) {
-        // Convert ordonnances to DTO, including medicaments
+        // Convert ordonnances to DTO, including medicaments with posologie & fréquence
         List<OrdonnanceDTO> ordonnances = patient.getOrdonnances().stream()
                 .map(ordonnance -> {
-                    // Convert each medicament into MedicamentCreateDTO
-                    List<MedicamentCreateDTO> medicamentDTOs = ordonnance.getMédicaments().stream()
-                            .map(medicament -> new MedicamentCreateDTO(
-                                    medicament.getNom(),
-                                    medicament.getPosologie(),
-                                    medicament.getFréquence()
+                    // Convert each OrdonnanceMedicament into DTO
+                    List<OrdonnanceMedicamentDTO> medicamentDTOs = ordonnance.getOrdonnanceMedicaments().stream()
+                            .map(ordMed -> new OrdonnanceMedicamentDTO(
+                                    ordMed.getMedicament().getId(),
+                                    ordMed.getMedicament().getNom(),
+                                    ordMed.getPosologie(), // Retrieve posologie
+                                    ordMed.getFrequence() // Retrieve fréquence
                             ))
                             .collect(Collectors.toList());
 
@@ -115,7 +116,8 @@ public class PharmacienService {
                     return new OrdonnanceDTO(
                             ordonnance.getId(),
                             ordonnance.getDescription(),
-                            ordonnance.getDate(),
+//                            ordonnance.getNom(),
+                            ordonnance.getCreatedAt(),
                             ordonnance.getPatient().getCodePatient(),
                             medicamentDTOs // Pass the list of medicamentDTOs here
                     );
@@ -133,17 +135,18 @@ public class PharmacienService {
         );
     }
 
-
+    // ✅ Fetch all ordonnances with corresponding medicaments
     public List<OrdonnanceDTO> listOrdonnance() {
         try {
             return ordonnanceRepository.findAll().stream()
                     .map(ordonnance -> {
-                        // Map the Medicament list for the ordonnance to MedicamentCreateDTO
-                        List<MedicamentCreateDTO> medicamentDTOs = ordonnance.getMédicaments().stream()
-                                .map(medicament -> new MedicamentCreateDTO(
-                                        medicament.getNom(),
-                                        medicament.getPosologie(),
-                                        medicament.getFréquence()
+                        // Map the Medicament list for the ordonnance to OrdonnanceMedicamentDTO
+                        List<OrdonnanceMedicamentDTO> medicamentDTOs = ordonnance.getOrdonnanceMedicaments().stream()
+                                .map(ordMed -> new OrdonnanceMedicamentDTO(
+                                        ordMed.getMedicament().getId(),
+                                        ordMed.getMedicament().getNom(),
+                                        ordMed.getPosologie(),
+                                        ordMed.getFrequence()
                                 ))
                                 .collect(Collectors.toList());
 
@@ -151,7 +154,8 @@ public class PharmacienService {
                         return new OrdonnanceDTO(
                                 ordonnance.getId(),
                                 ordonnance.getDescription(),
-                                ordonnance.getDate(),
+//                                ordonnance.getNom(),
+                                ordonnance.getCreatedAt(),
                                 ordonnance.getPatient().getCodePatient(),
                                 medicamentDTOs
                         );
@@ -163,7 +167,7 @@ public class PharmacienService {
         }
     }
 
-
+    // ✅ Fetch ordonnances of a specific patient with medicaments & their details
     public List<PatientDTO> getPatientOrdonnances(String codePatient) {
         try {
             Optional<Patient> patient = patientRepository.findByCodePatient(codePatient);
@@ -171,12 +175,13 @@ public class PharmacienService {
                 // Map the ordonnances of the patient to OrdonnanceDTO
                 List<OrdonnanceDTO> ordonnanceDTOs = patient.get().getOrdonnances().stream()
                         .map(ordonnance -> {
-                            // Convert each Medicament to MedicamentCreateDTO
-                            List<MedicamentCreateDTO> medicamentDTOs = ordonnance.getMédicaments().stream()
-                                    .map(medicament -> new MedicamentCreateDTO(
-                                            medicament.getNom(),
-                                            medicament.getPosologie(),
-                                            medicament.getFréquence()
+                            // Convert each Medicament to OrdonnanceMedicamentDTO
+                            List<OrdonnanceMedicamentDTO> medicamentDTOs = ordonnance.getOrdonnanceMedicaments().stream()
+                                    .map(ordMed -> new OrdonnanceMedicamentDTO(
+                                            ordMed.getMedicament().getId(),
+                                            ordMed.getMedicament().getNom(),
+                                            ordMed.getPosologie(),
+                                            ordMed.getFrequence()
                                     ))
                                     .collect(Collectors.toList());
 
@@ -184,7 +189,8 @@ public class PharmacienService {
                             return new OrdonnanceDTO(
                                     ordonnance.getId(),
                                     ordonnance.getDescription(),
-                                    ordonnance.getDate(),
+//                                    ordonnance.getNom(),
+                                    ordonnance.getCreatedAt(),
                                     ordonnance.getPatient().getCodePatient(),
                                     medicamentDTOs
                             );
@@ -203,7 +209,6 @@ public class PharmacienService {
                         ordonnanceDTOs // Include all ordonnanceDTOs in the list
                 );
 
-                // Wrap the patientDTO in a list (you may change this if you need just one object instead of a list)
                 return List.of(patientDTO);
             } else {
                 return null; // Or handle error if patient is not found
@@ -214,63 +219,6 @@ public class PharmacienService {
         }
     }
 
-    @Transactional
-    public OrdonnanceDTO createOrdonnanceWithMedicaments(OrdonnanceCreateDTO ordonnanceCreateDTO) {
-        // Retrieve the patient based on the provided patient code
-        Patient patient = patientRepository.findByCodePatient(ordonnanceCreateDTO.getCodePatient())
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
 
-        Pharmacien pharmacien = pharmacienRepository.findByEmail("admin@example.com")  // This should be dynamic (e.g., logged-in user)
-                .orElseThrow(() -> new RuntimeException("Pharmacien not found"));
 
-        // Create and save the ordonnance
-        Ordonnance ordonnance = Ordonnance.builder()
-                .description(ordonnanceCreateDTO.getDescription())
-                .date(ordonnanceCreateDTO.getDate())
-                .patient(patient)
-                .pharmacien(pharmacien)
-                .build();
-
-        Ordonnance savedOrdonnance = ordonnanceRepository.save(ordonnance);
-
-        // Create and save the associated medicaments
-        ordonnanceCreateDTO.getMedicaments().forEach(medicamentDTO -> {
-            Medicament medicament = Medicament.builder()
-                    .nom(medicamentDTO.getNom())
-                    .posologie(medicamentDTO.getPosologie())
-                    .fréquence(medicamentDTO.getFrequence())
-                    .ordonnance(savedOrdonnance)
-                    .patient(patient)  // Assign the same patient
-                    .build();
-
-            medicamentRepository.save(medicament);
-        });
-
-        return mapToDto(savedOrdonnance);
-    }
-
-    // Helper method to map Ordonnance to DTO
-    private OrdonnanceDTO mapToDto(Ordonnance ordonnance) {
-        // Assuming that MedicamentDTO is also a part of OrdonnanceDTO
-        List<MedicamentCreateDTO> medicamentDTOS = ordonnance.getMédicaments().stream()
-                .map(medicament -> new MedicamentCreateDTO(
-                        medicament.getNom(),
-                        medicament.getPosologie(),
-                        medicament.getFréquence()
-                ))
-                .collect(Collectors.toList());
-
-        OrdonnanceDTO ordonnanceDTO = new OrdonnanceDTO( ordonnance.getId(),
-                ordonnance.getDescription(),
-                ordonnance.getDate(),
-                ordonnance.getPatient().getCodePatient(),
-                medicamentDTOS);
-        ordonnanceDTO.setId(ordonnance.getId());
-        ordonnanceDTO.setDescription(ordonnance.getDescription());
-        ordonnanceDTO.setDate(ordonnance.getDate());
-        ordonnanceDTO.setCodePatient(ordonnance.getPatient().getCodePatient());
-        ordonnanceDTO.setMedicaments(medicamentDTOS);
-
-        return ordonnanceDTO;
-    }
 }

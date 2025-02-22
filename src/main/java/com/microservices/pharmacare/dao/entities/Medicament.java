@@ -20,19 +20,13 @@ public class Medicament {
     private String nom;
 
     @Column(nullable = false)
-    private String posologie;
+    private String description;
 
-    @Column(nullable = false)
-    private String fréquence;
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")  // Store large text data (Base64 encoded image)
+    private String imageBase64;
 
-    @ManyToOne
-    @JoinColumn(name = "ordonnance_id", nullable = false)
-    private Ordonnance ordonnance;
-
-    @OneToMany(mappedBy = "medicament", cascade = CascadeType.ALL)
-    private List<Rappel> rappels;
-
-    @ManyToOne
-    @JoinColumn(name = "patient_id", nullable = false)
-    private Patient patient;
+    // ✅ Many-to-Many Relationship with Ordonnance using a Join Table
+    @OneToMany(mappedBy = "medicament", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrdonnanceMedicament> ordonnanceMedicaments;
 }

@@ -1,14 +1,14 @@
 package com.microservices.pharmacare.dto;
 
-import com.microservices.pharmacare.dao.entities.Medicament;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
+@AllArgsConstructor
 public class MedicamentDTO {
     private Long id;
     private String nom;
-    private String posologie;
-    private String fréquence;
-    private Long ordonnanceId;
-
+    private String description;
+    private String imageUrl; // Added image field
 }
+
