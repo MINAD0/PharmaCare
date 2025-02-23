@@ -16,4 +16,5 @@ public class OrdonnanceDTO {
     private Date createdAt;
     private String codePatient;
     private List<OrdonnanceMedicamentDTO> medicaments; // List of Medicaments with specific dosage
+    private List<RappelDTO> rappels;
 }

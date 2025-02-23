@@ -1,5 +1,6 @@
 package com.microservices.pharmacare.dao.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -63,6 +64,7 @@ public class Patient {
     }
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Ordonnance> ordonnances;
 
 //    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL)

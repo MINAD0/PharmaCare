@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -54,6 +55,12 @@ public class PharmacienController {
         }else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
+    }
+
+    @GetMapping("/medicament")
+    public ResponseEntity<List<MedicamentDTO>> getAllMedicaments() {
+        List<MedicamentDTO> medicaments = medicamentService.getAllMedicaments();
+        return ResponseEntity.ok(medicaments);
     }
 
 //    @SecurityRequirement(name = "BearerAuth")
@@ -99,6 +106,22 @@ public class PharmacienController {
 
         MedicamentDTO createdMedicament = medicamentService.createMedicament(dto);
         return ResponseEntity.ok(createdMedicament);
+    }
+
+    @GetMapping("/patient/{codePatient}/rappels")
+    public ResponseEntity<List<RappelDTO>> getPatientRappels(@PathVariable String codePatient) {
+        List<RappelDTO> rappels = ordonnanceService.getRappelsByPatient(codePatient);
+        return ResponseEntity.ok(rappels);
+    }
+
+    @PutMapping("/rappel/{rappelId}")
+    public ResponseEntity<String> updateRappelStatus(
+            @PathVariable Long rappelId,
+            @RequestBody Map<String, Boolean> requestBody) {
+
+        boolean newStatus = requestBody.get("status");
+        ordonnanceService.updateRappelStatus(rappelId, newStatus);
+        return ResponseEntity.ok("Rappel status updated successfully");
     }
 
 }

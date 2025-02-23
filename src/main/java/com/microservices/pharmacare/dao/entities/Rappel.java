@@ -4,11 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 
 @Entity
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class Rappel {
     @Id
@@ -16,19 +17,15 @@ public class Rappel {
     private Long id;
 
     @Column(nullable = false)
-    private String titre;
+    private String message; // ✅ The reminder message
 
     @Column(nullable = false)
-    private String description;
+    private LocalDateTime dateRappel; // ✅ When the reminder should be sent
 
     @Column(nullable = false)
-    private LocalDateTime dateHeure;
+    private Boolean status = false; // ✅ False by default (not acknowledged)
 
     @ManyToOne
-    @JoinColumn(name = "medicament_id", nullable = false)
-    private Medicament medicament;
-
-    @ManyToOne
-    @JoinColumn(name = "patient_id", nullable = false)
-    private Patient patient;
+    @JoinColumn(name = "ordonnance_id", nullable = false)
+    private Ordonnance ordonnance;
 }

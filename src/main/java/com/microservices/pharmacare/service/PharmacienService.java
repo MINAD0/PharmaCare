@@ -111,6 +111,14 @@ public class PharmacienService {
                                     ordMed.getFrequence() // Retrieve fréquence
                             ))
                             .collect(Collectors.toList());
+                    List<RappelDTO> rappelDTOs = ordonnance.getRappels().stream()
+                            .map(rappel -> new RappelDTO(
+                                    rappel.getId(),
+                                    rappel.getMessage(),
+                                    rappel.getDateRappel(),
+                                    rappel.getStatus()
+                            ))
+                            .collect(Collectors.toList());
 
                     // Create and return the OrdonnanceDTO
                     return new OrdonnanceDTO(
@@ -119,7 +127,8 @@ public class PharmacienService {
 //                            ordonnance.getNom(),
                             ordonnance.getCreatedAt(),
                             ordonnance.getPatient().getCodePatient(),
-                            medicamentDTOs // Pass the list of medicamentDTOs here
+                            medicamentDTOs, // Pass the list of medicamentDTOs here
+                            rappelDTOs
                     );
                 })
                 .collect(Collectors.toList());
@@ -149,6 +158,14 @@ public class PharmacienService {
                                         ordMed.getFrequence()
                                 ))
                                 .collect(Collectors.toList());
+                        List<RappelDTO> rappelDTOs = ordonnance.getRappels().stream()
+                                .map(rappel -> new RappelDTO(
+                                        rappel.getId(),
+                                        rappel.getMessage(),
+                                        rappel.getDateRappel(),
+                                        rappel.getStatus()
+                                ))
+                                .collect(Collectors.toList());
 
                         // Return OrdonnanceDTO with the list of MedicamentDTOs
                         return new OrdonnanceDTO(
@@ -157,7 +174,8 @@ public class PharmacienService {
 //                                ordonnance.getNom(),
                                 ordonnance.getCreatedAt(),
                                 ordonnance.getPatient().getCodePatient(),
-                                medicamentDTOs
+                                medicamentDTOs,
+                                rappelDTOs
                         );
                     })
                     .collect(Collectors.toList());
@@ -184,6 +202,14 @@ public class PharmacienService {
                                             ordMed.getFrequence()
                                     ))
                                     .collect(Collectors.toList());
+                            List<RappelDTO> rappelDTOs = ordonnance.getRappels().stream()
+                                    .map(rappel -> new RappelDTO(
+                                            rappel.getId(),
+                                            rappel.getMessage(),
+                                            rappel.getDateRappel(),
+                                            rappel.getStatus()
+                                    ))
+                                    .collect(Collectors.toList());
 
                             // Return OrdonnanceDTO with all medicament details
                             return new OrdonnanceDTO(
@@ -192,7 +218,8 @@ public class PharmacienService {
 //                                    ordonnance.getNom(),
                                     ordonnance.getCreatedAt(),
                                     ordonnance.getPatient().getCodePatient(),
-                                    medicamentDTOs
+                                    medicamentDTOs,
+                                    rappelDTOs
                             );
                         })
                         .collect(Collectors.toList());

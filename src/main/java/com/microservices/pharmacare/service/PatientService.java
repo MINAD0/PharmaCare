@@ -96,6 +96,14 @@ public class PatientService {
                                     ordMed.getFrequence()
                             ))
                             .collect(Collectors.toList());
+                    List<RappelDTO> rappelDTOs = ordonnance.getRappels().stream()
+                            .map(rappel -> new RappelDTO(
+                                    rappel.getId(),
+                                    rappel.getMessage(),
+                                    rappel.getDateRappel(),
+                                    rappel.getStatus()
+                            ))
+                            .collect(Collectors.toList());
 
                     return new OrdonnanceDTO(
                             ordonnance.getId(),
@@ -103,7 +111,8 @@ public class PatientService {
 //                            ordonnance.getNom(), // Ensure correct field usage
                             ordonnance.getCreatedAt(),
                             ordonnance.getPatient().getCodePatient(),
-                            medicamentDTOs // Pass the list of medicaments
+                            medicamentDTOs, // Pass the list of medicaments
+                            rappelDTOs
                     );
                 }).collect(Collectors.toList());
 
